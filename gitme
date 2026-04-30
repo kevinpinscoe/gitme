@@ -2,6 +2,7 @@
 
 GITME_CACHE_DIR="${GITME_CACHE_DIR:-$HOME/.gitme}"
 GITME_CACHE_FILE="$GITME_CACHE_DIR/cache"
+GITME_IGNORE="${GITME_IGNORE:-$GITME_CACHE_DIR/ignore}"
 
 safe_cd() {
   local target="$1"
@@ -15,6 +16,17 @@ safe_cd() {
     echo "Not a directory: $target" >&2
     return 1
   fi
+}
+
+_gitme_is_ignored() {
+  local dir="$1"
+  [[ -f "$GITME_IGNORE" ]] || return 1
+  while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+    [[ -z "$pattern" || "$pattern" == '#'* ]] && continue
+    # shellcheck disable=SC2254
+    [[ "$dir" == $pattern ]] && return 0
+  done < "$GITME_IGNORE"
+  return 1
 }
 
 _gitme_build_cache() {
@@ -36,7 +48,7 @@ _gitme_build_cache() {
 }
 
 gitme() {
-  local GITME_VERSION="0.0.2"
+  local GITME_VERSION="0.0.3"
 
   case "$1" in
     -h|--help)
@@ -55,6 +67,19 @@ and interactively jumps to matching Git repositories.
 
 Options:
   --rebuild-cache    Rebuild the repository cache for faster searching
+
+Ignore file:
+  Repos can be excluded at search time via an ignore file.
+  Default location: \$GITME_CACHE_DIR/ignore  (~/.gitme/ignore)
+  Override with:    export GITME_IGNORE=/path/to/ignore-file
+
+  Each line is a bash glob pattern matched against the full repo path.
+  Lines starting with # are comments. Examples:
+    /home/user/Projects/3rd-party-repos/*
+    /home/user/Projects/secret-project
+    /home/user/bin/gitme
+
+  Changes to the ignore file take effect immediately — no cache rebuild needed.
 
 Examples:
   gitme utils
@@ -97,8 +122,8 @@ EOF
 
       shopt -s nocasematch
       if [[ "$repo_name" == *"$SEARCH"* || "$remote_url" == *"$SEARCH"* ]]; then
-        # Verify directory still exists before adding to matches
-        if [[ -d "$dir" ]]; then
+        # Verify directory still exists and is not ignored before adding to matches
+        if [[ -d "$dir" ]] && ! _gitme_is_ignored "$dir"; then
           matches+=("$dir")
         fi
       fi
@@ -124,4 +149,3 @@ EOF
     done
   fi
 }
-
