@@ -4,7 +4,7 @@
 "></object>
 ![Shell](https://img.shields.io/badge/shell-bash-1f425f.svg)
 ![Licence](https://img.shields.io/badge/licence-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-0.0.2-blue.svg)
+![Version](https://img.shields.io/badge/version-0.0.3-blue.svg)
 
 `gitme` is a handy Bash function that lets you quickly jump to any of your
 Git repositories by name or remote URL. It's perfect if you have dozens (or
@@ -65,6 +65,30 @@ You can also customize the cache directory by setting `GITME_CACHE_DIR`:
 export GITME_CACHE_DIR="$HOME/.gitme"  # default
 ```
 
+### Ignore file
+
+Repos can be excluded from search results at runtime — no cache rebuild needed.
+
+The ignore file lives at `$GITME_CACHE_DIR/ignore` (`~/.gitme/ignore`) by default.
+Override the path with `GITME_IGNORE`:
+
+```bash
+export GITME_IGNORE="/path/to/my-ignore-file"
+```
+
+Each line is a Bash glob pattern matched against the full repo path.
+Lines starting with `#` are treated as comments. Example:
+
+```
+# skip all third-party clones
+/home/user/Projects/3rd-party-repos/*
+
+# skip a specific repo
+/home/user/Projects/secret-project
+```
+
+Changes to the ignore file take effect immediately — `gitme` reads it on every search.
+
 ## 🧪 Usage
 
 ```bash
@@ -120,6 +144,7 @@ cp man/gitme.1.gz ~/.local/share/man/man1/
 - Matches both the **directory name** and the **remote.origin.url**
 - Works across multiple base directories
 - **Fast caching** for quick lookups
+- **Ignore file** to exclude repos at runtime (no rebuild needed)
 - Bash tab-completion for easy discovery
 - Interactive selection if more than one match
 - Written as a function so it can actually `cd` into the repo
