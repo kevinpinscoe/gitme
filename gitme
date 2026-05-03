@@ -24,7 +24,7 @@ _gitme_is_ignored() {
   while IFS= read -r pattern || [[ -n "$pattern" ]]; do
     [[ -z "$pattern" || "$pattern" == '#'* ]] && continue
     # shellcheck disable=SC2254
-    [[ "$dir" == $pattern ]] && return 0
+    [[ "$dir" == $pattern || "$dir" == $pattern/* ]] && return 0
   done < "$GITME_IGNORE"
   return 1
 }
