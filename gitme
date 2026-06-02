@@ -39,7 +39,7 @@ _gitme_build_cache() {
   for base in "${DIRS[@]}"; do
     [[ -d "$base" ]] || continue
     while IFS= read -r dir; do
-      remote_url="$(git -C "$dir" config --get remote.origin.url 2>/dev/null || echo "")"
+      remote_url="$(GIT_TERMINAL_PROMPT=0 git -C "$dir" config --get remote.origin.url 2>/dev/null || echo "")"
       printf '%s\t%s\n' "$dir" "$remote_url" >> "$GITME_CACHE_FILE"
     done < <(find "$base" -type d -name .git -exec dirname {} \;)
   done
