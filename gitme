@@ -41,7 +41,7 @@ _gitme_build_cache() {
     while IFS= read -r dir; do
       remote_url="$(GIT_TERMINAL_PROMPT=0 git -C "$dir" config --get remote.origin.url 2>/dev/null || echo "")"
       printf '%s\t%s\n' "$dir" "$remote_url" >> "$GITME_CACHE_FILE"
-    done < <(find "$base" -type d -name .git -exec dirname {} \;)
+    done < <(find "$base" -type d -name .git -exec dirname {} \; 2>/dev/null)
   done
 
   echo "Cache rebuilt: $(wc -l < "$GITME_CACHE_FILE") repositories found."
