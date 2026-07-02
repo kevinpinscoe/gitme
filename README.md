@@ -4,7 +4,7 @@
 "></object>
 ![Shell](https://img.shields.io/badge/shell-bash-1f425f.svg)
 ![Licence](https://img.shields.io/badge/licence-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-0.0.3-blue.svg)
+![Version](https://img.shields.io/badge/version-0.0.4-blue.svg)
 
 `gitme` is a handy Bash function that lets you quickly jump to any of your
 Git repositories by name or remote URL. It's perfect if you have dozens (or
@@ -141,7 +141,9 @@ cp man/gitme.1.gz ~/.local/share/man/man1/
 
 ## 💡 Features
 
-- Matches both the **directory name** and the **remote.origin.url**
+- Matches both the **directory name** and the **remote.origin.url**, preferring
+  name matches over URL matches so a shared remote host (e.g. a self-hosted Git
+  server) doesn't return every repo
 - Works across multiple base directories
 - **Fast caching** for quick lookups
 - **Ignore file** to exclude repos at runtime (no rebuild needed)

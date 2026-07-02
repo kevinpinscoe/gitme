@@ -48,7 +48,7 @@ _gitme_build_cache() {
 }
 
 gitme() {
-  local GITME_VERSION="0.0.3"
+  local GITME_VERSION="0.0.4"
 
   case "$1" in
     -h|--help)
@@ -107,6 +107,12 @@ EOF
 
   local SEARCH="$1"
   local matches=()
+  # Matches are collected into three tiers of decreasing specificity so that a
+  # term like "kevininscoe.com" (which is part of every Gitea remote URL) does
+  # not drown out the repo actually named "kevininscoe.com".
+  local name_exact=()   # repo directory name equals the search term
+  local name_match=()   # repo directory name contains the search term
+  local url_match=()     # only the remote URL contains the search term
 
   # Build cache if it doesn't exist
   if [[ ! -f "$GITME_CACHE_FILE" ]]; then
@@ -120,15 +126,28 @@ EOF
       [[ -z "$dir" ]] && continue
       repo_name="$(basename "$dir")"
 
+      # Verify directory still exists and is not ignored before considering it
+      [[ -d "$dir" ]] && ! _gitme_is_ignored "$dir" || continue
+
       shopt -s nocasematch
-      if [[ "$repo_name" == *"$SEARCH"* || "$remote_url" == *"$SEARCH"* ]]; then
-        # Verify directory still exists and is not ignored before adding to matches
-        if [[ -d "$dir" ]] && ! _gitme_is_ignored "$dir"; then
-          matches+=("$dir")
-        fi
+      if [[ "$repo_name" == "$SEARCH" ]]; then
+        name_exact+=("$dir")
+      elif [[ "$repo_name" == *"$SEARCH"* ]]; then
+        name_match+=("$dir")
+      elif [[ "$remote_url" == *"$SEARCH"* ]]; then
+        url_match+=("$dir")
       fi
       shopt -u nocasematch
     done < "$GITME_CACHE_FILE"
+  fi
+
+  # Prefer the most specific tier that produced any results.
+  if [[ ${#name_exact[@]} -gt 0 ]]; then
+    matches=("${name_exact[@]}")
+  elif [[ ${#name_match[@]} -gt 0 ]]; then
+    matches=("${name_match[@]}")
+  else
+    matches=("${url_match[@]}")
   fi
 
   if [[ ${#matches[@]} -eq 0 ]]; then
