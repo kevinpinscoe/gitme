@@ -48,7 +48,7 @@ _gitme_build_cache() {
 }
 
 gitme() {
-  local GITME_VERSION="0.0.4"
+  local GITME_VERSION="0.0.5"
 
   case "$1" in
     -h|--help)
