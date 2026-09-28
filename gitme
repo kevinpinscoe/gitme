@@ -22,6 +22,11 @@ _gitme_is_ignored() {
   local dir="$1"
   [[ -f "$GITME_IGNORE" ]] || return 1
   while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+    # Trim leading/trailing whitespace -- a pattern line with a stray
+    # trailing space (easy to leave from editing or pasting a path) would
+    # otherwise never match $dir and silently fail to ignore it.
+    pattern="${pattern#"${pattern%%[![:space:]]*}"}"
+    pattern="${pattern%"${pattern##*[![:space:]]}"}"
     [[ -z "$pattern" || "$pattern" == '#'* ]] && continue
     # shellcheck disable=SC2254
     [[ "$dir" == $pattern || "$dir" == $pattern/* ]] && return 0
