@@ -143,6 +143,23 @@ cp man/gitme.1.gz ~/.local/share/man/man1/
 # export MANPATH="$HOME/.local/share/man:$MANPATH"
 ```
 
+## ✅ Testing
+
+`tests/run.sh` sources `gitme` into each shell and calls it in that same
+shell, so it checks the directory change, the caller's shell options and
+leaked variables as well as the matching rules. It builds its fixture in a
+temporary directory, removes it on exit, and works from any directory:
+
+```bash
+bash tests/run.sh                     # every bash and zsh found on this host
+bash tests/run.sh /bin/zsh            # zsh only
+bash tests/run.sh /bin/bash /bin/zsh  # the shells named
+```
+
+Each shell prints a `RESULT` line. The runner exits non-zero if any case
+fails. Set `GITME_SCRIPT=/path/to/gitme` to test a different copy of the
+script.
+
 ## 💡 Features
 
 - Matches both the **directory name** and the **remote.origin.url**, preferring
