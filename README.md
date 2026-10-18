@@ -2,11 +2,11 @@
 
 <object data="https://img.shields.io/badge/github-repo-blue?logo=github&link=https%3A%2F%2Fgithub.com%2Fdavorg%2Fgitme
 "></object>
-![Shell](https://img.shields.io/badge/shell-bash-1f425f.svg)
+![Shell](https://img.shields.io/badge/shell-bash%20%7C%20zsh-1f425f.svg)
 ![Licence](https://img.shields.io/badge/licence-MIT-green.svg)
 ![Version](https://img.shields.io/badge/version-0.0.6-blue.svg)
 
-`gitme` is a handy Bash function that lets you quickly jump to any of your
+`gitme` is a handy shell function for bash and zsh that lets you quickly jump to any of your
 Git repositories by name or remote URL. It's perfect if you have dozens (or
 hundreds) of repos spread across different directories.
 
@@ -29,7 +29,7 @@ Clone this repo and add the following to your shell config (`~/.bashrc`,
 `~/.zshrc`, etc):
 
 ```bash
-source /path/to/gitme/gitme.sh
+source /path/to/gitme/gitme
 ```
 
 If you have [`bash-completion`](https://github.com/scop/bash-completion)
@@ -80,7 +80,7 @@ Override the path with `GITME_IGNORE`:
 export GITME_IGNORE="/path/to/my-ignore-file"
 ```
 
-Each line is a Bash glob pattern matched against the full repo path.
+Each line is a glob pattern matched against the full repo path.
 Lines starting with `#` are treated as comments. Example:
 
 ```

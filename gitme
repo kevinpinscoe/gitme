@@ -1,4 +1,8 @@
-# ~/.gitme/gitme.sh
+# gitme - source this file from bash or zsh.
+#
+# Everything here must run unchanged in both shells: no bash-only builtins
+# (shopt, read -a), no 0-based array indexing (zsh arrays start at 1), and no
+# changes to the caller's shell options.
 
 GITME_CACHE_DIR="${GITME_CACHE_DIR:-$HOME/.gitme}"
 GITME_CACHE_FILE="$GITME_CACHE_DIR/cache"
@@ -8,19 +12,24 @@ safe_cd() {
   local target="$1"
 
   if [[ -d "$target" ]]; then
-    cd "$target" || {
-      echo "Failed to change directory to: $target" >&2
+    cd -- "$target" || {
+      printf 'Failed to change directory to: %s\n' "$target" >&2
       return 1
     }
   else
-    echo "Not a directory: $target" >&2
+    printf 'Not a directory: %s\n' "$target" >&2
     return 1
   fi
 }
 
 _gitme_is_ignored() {
-  local dir="$1"
+  local dir="$1" pattern
   [[ -f "$GITME_IGNORE" ]] || return 1
+  # zsh only treats an unquoted $pattern as a glob when GLOB_SUBST is set.
+  # localoptions restores the caller's options when this function returns.
+  if [[ -n "${ZSH_VERSION-}" ]]; then
+    setopt localoptions globsubst
+  fi
   while IFS= read -r pattern || [[ -n "$pattern" ]]; do
     # Trim leading/trailing whitespace -- a pattern line with a stray
     # trailing space (easy to leave from editing or pasting a path) would
@@ -28,28 +37,31 @@ _gitme_is_ignored() {
     pattern="${pattern#"${pattern%%[![:space:]]*}"}"
     pattern="${pattern%"${pattern##*[![:space:]]}"}"
     [[ -z "$pattern" || "$pattern" == '#'* ]] && continue
-    # shellcheck disable=SC2254
+    # Unquoted on purpose: the ignore line is a glob.
+    # shellcheck disable=SC2053
     [[ "$dir" == $pattern || "$dir" == $pattern/* ]] && return 0
   done < "$GITME_IGNORE"
   return 1
 }
 
 _gitme_build_cache() {
-  local GITME_DIRS="${GITME_DIRS:-$HOME/git}"
-  IFS=':' read -ra DIRS <<< "$GITME_DIRS"
+  local rest="${GITME_DIRS:-$HOME/git}:" base dir remote_url
 
   mkdir -p "$GITME_CACHE_DIR"
   : > "$GITME_CACHE_FILE"
 
-  for base in "${DIRS[@]}"; do
-    [[ -d "$base" ]] || continue
+  # Split the colon-separated list without read -a (bash) or read -A (zsh).
+  while [[ -n "$rest" ]]; do
+    base="${rest%%:*}"
+    rest="${rest#*:}"
+    [[ -n "$base" && -d "$base" ]] || continue
     while IFS= read -r dir; do
       remote_url="$(GIT_TERMINAL_PROMPT=0 git -C "$dir" config --get remote.origin.url 2>/dev/null || echo "")"
       printf '%s\t%s\n' "$dir" "$remote_url" >> "$GITME_CACHE_FILE"
     done < <(find "$base" -type d -name .git -exec dirname {} \; 2>/dev/null)
   done
 
-  echo "Cache rebuilt: $(wc -l < "$GITME_CACHE_FILE") repositories found."
+  echo "Cache rebuilt: $(wc -l < "$GITME_CACHE_FILE" | tr -d ' ') repositories found."
 }
 
 gitme() {
@@ -70,6 +82,10 @@ Usage:
 Searches all directories listed in \$GITME_DIRS (or \$HOME/git by default)
 and interactively jumps to matching Git repositories.
 
+Repo names that equal the search term are listed first, then repo names that
+contain it. Remote URLs are searched only when no repo name matches. Matching
+is case-insensitive.
+
 Options:
   --rebuild-cache    Rebuild the repository cache for faster searching
 
@@ -78,7 +94,7 @@ Ignore file:
   Default location: \$GITME_CACHE_DIR/ignore  (~/.gitme/ignore)
   Override with:    export GITME_IGNORE=/path/to/ignore-file
 
-  Each line is a bash glob pattern matched against the full repo path.
+  Each line is a glob pattern matched against the full repo path.
   Lines starting with # are comments. Examples:
     /home/user/Projects/3rd-party-repos/*
     /home/user/Projects/secret-project
@@ -110,14 +126,14 @@ EOF
     return 1
   fi
 
-  local SEARCH="$1"
+  local search_lc dir name_lc url_lc repo
   local matches=()
   # Matches are collected into three tiers of decreasing specificity so that a
   # term like "kevininscoe.com" (which is part of every Gitea remote URL) does
   # not drown out the repo actually named "kevininscoe.com".
   local name_exact=()   # repo directory name equals the search term
   local name_match=()   # repo directory name contains the search term
-  local url_match=()     # only the remote URL contains the search term
+  local url_match=()    # only the remote URL contains the search term
 
   # Build cache if it doesn't exist
   if [[ ! -f "$GITME_CACHE_FILE" ]]; then
@@ -125,25 +141,28 @@ EOF
     _gitme_build_cache
   fi
 
-  # Search using cache
+  # Case-insensitive matching by lowercasing both sides, instead of bash's
+  # nocasematch (no zsh equivalent, and toggling it would leak to the caller).
+  search_lc="$(printf '%s\n' "$1" | awk '{ print tolower($0) }')"
+
+  # Search using cache. awk emits: dir <TAB> lowercased repo name <TAB>
+  # lowercased remote URL, so each line costs no extra processes.
   if [[ -s "$GITME_CACHE_FILE" ]]; then
-    while IFS=$'\t' read -r dir remote_url; do
+    while IFS=$'\t' read -r dir name_lc url_lc; do
       [[ -z "$dir" ]] && continue
-      repo_name="$(basename "$dir")"
 
       # Verify directory still exists and is not ignored before considering it
-      [[ -d "$dir" ]] && ! _gitme_is_ignored "$dir" || continue
+      [[ -d "$dir" ]] || continue
+      _gitme_is_ignored "$dir" && continue
 
-      shopt -s nocasematch
-      if [[ "$repo_name" == "$SEARCH" ]]; then
+      if [[ "$name_lc" == "$search_lc" ]]; then
         name_exact+=("$dir")
-      elif [[ "$repo_name" == *"$SEARCH"* ]]; then
+      elif [[ "$name_lc" == *"$search_lc"* ]]; then
         name_match+=("$dir")
-      elif [[ "$remote_url" == *"$SEARCH"* ]]; then
+      elif [[ "$url_lc" == *"$search_lc"* ]]; then
         url_match+=("$dir")
       fi
-      shopt -u nocasematch
-    done < "$GITME_CACHE_FILE"
+    done < <(awk -F '\t' '{ name = $1; sub(/.*\//, "", name); printf "%s\t%s\t%s\n", $1, tolower(name), tolower($2) }' "$GITME_CACHE_FILE")
   fi
 
   # Repo-name matches win over URL-only matches. Exact and partial name matches
@@ -159,17 +178,22 @@ EOF
     echo "No matching repositories found."
     return 1
   elif [[ ${#matches[@]} -eq 1 ]]; then
-    echo "Found one match: ${matches[0]}"
-    safe_cd "${matches[0]}"
+    # Iterate rather than index: matches[0] is empty in zsh.
+    for repo in "${matches[@]}"; do
+      printf 'Found one match: %s\n' "$repo"
+      safe_cd "$repo"
+    done
   else
     echo "Multiple matches found:"
     select repo in "${matches[@]}"; do
       if [[ -n "$repo" ]]; then
         safe_cd "$repo"
-        break
+        return
       else
         echo "Invalid selection."
       fi
     done
+    # select ended on EOF (Ctrl-D) without a choice.
+    return 1
   fi
 }
