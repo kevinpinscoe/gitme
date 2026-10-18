@@ -53,7 +53,7 @@ _gitme_build_cache() {
 }
 
 gitme() {
-  local GITME_VERSION="0.0.5"
+  local GITME_VERSION="0.0.6"
 
   case "$1" in
     -h|--help)
@@ -146,11 +146,11 @@ EOF
     done < "$GITME_CACHE_FILE"
   fi
 
-  # Prefer the most specific tier that produced any results.
-  if [[ ${#name_exact[@]} -gt 0 ]]; then
-    matches=("${name_exact[@]}")
-  elif [[ ${#name_match[@]} -gt 0 ]]; then
-    matches=("${name_match[@]}")
+  # Repo-name matches win over URL-only matches. Exact and partial name matches
+  # are offered together (exact first) so an exact match such as "youtrack"
+  # does not hide "youtrack.kevininscoe.com".
+  if [[ $(( ${#name_exact[@]} + ${#name_match[@]} )) -gt 0 ]]; then
+    matches=("${name_exact[@]}" "${name_match[@]}")
   else
     matches=("${url_match[@]}")
   fi

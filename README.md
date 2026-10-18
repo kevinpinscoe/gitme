@@ -4,7 +4,7 @@
 "></object>
 ![Shell](https://img.shields.io/badge/shell-bash-1f425f.svg)
 ![Licence](https://img.shields.io/badge/licence-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-0.0.5-blue.svg)
+![Version](https://img.shields.io/badge/version-0.0.6-blue.svg)
 
 `gitme` is a handy Bash function that lets you quickly jump to any of your
 Git repositories by name or remote URL. It's perfect if you have dozens (or
@@ -18,6 +18,10 @@ in the directories you specify and, if it finds a match:
 - If there's only one match, it changes to that directory.
 - If there are multiple matches, it asks you to choose one.
 - If there's no match, it tells you so.
+
+Repo directory names are matched first: repos whose name equals the search
+string are listed first, followed by repos whose name contains it. The remote
+URL is searched only when no repo name matches.
 
 ## 🔧 Installation
 
