@@ -2,11 +2,11 @@
 
 <object data="https://img.shields.io/badge/github-repo-blue?logo=github&link=https%3A%2F%2Fgithub.com%2Fdavorg%2Fgitme
 "></object>
-![Shell](https://img.shields.io/badge/shell-bash-1f425f.svg)
+![Shell](https://img.shields.io/badge/shell-bash%20%7C%20zsh-1f425f.svg)
 ![Licence](https://img.shields.io/badge/licence-MIT-green.svg)
-![Version](https://img.shields.io/badge/version-0.0.5-blue.svg)
+![Version](https://img.shields.io/badge/version-0.0.6-blue.svg)
 
-`gitme` is a handy Bash function that lets you quickly jump to any of your
+`gitme` is a handy shell function for bash and zsh that lets you quickly jump to any of your
 Git repositories by name or remote URL. It's perfect if you have dozens (or
 hundreds) of repos spread across different directories.
 
@@ -19,13 +19,17 @@ in the directories you specify and, if it finds a match:
 - If there are multiple matches, it asks you to choose one.
 - If there's no match, it tells you so.
 
+Repo directory names are matched first: repos whose name equals the search
+string are listed first, followed by repos whose name contains it. The remote
+URL is searched only when no repo name matches.
+
 ## 🔧 Installation
 
 Clone this repo and add the following to your shell config (`~/.bashrc`,
 `~/.zshrc`, etc):
 
 ```bash
-source /path/to/gitme/gitme.sh
+source /path/to/gitme/gitme
 ```
 
 If you have [`bash-completion`](https://github.com/scop/bash-completion)
@@ -76,7 +80,7 @@ Override the path with `GITME_IGNORE`:
 export GITME_IGNORE="/path/to/my-ignore-file"
 ```
 
-Each line is a Bash glob pattern matched against the full repo path.
+Each line is a glob pattern matched against the full repo path.
 Lines starting with `#` are treated as comments. Example:
 
 ```
@@ -138,6 +142,23 @@ cp man/gitme.1.gz ~/.local/share/man/man1/
 # (Optional) Add to your shell config:
 # export MANPATH="$HOME/.local/share/man:$MANPATH"
 ```
+
+## ✅ Testing
+
+`tests/run.sh` sources `gitme` into each shell and calls it in that same
+shell, so it checks the directory change, the caller's shell options and
+leaked variables as well as the matching rules. It builds its fixture in a
+temporary directory, removes it on exit, and works from any directory:
+
+```bash
+bash tests/run.sh                     # every bash and zsh found on this host
+bash tests/run.sh /bin/zsh            # zsh only
+bash tests/run.sh /bin/bash /bin/zsh  # the shells named
+```
+
+Each shell prints a `RESULT` line. The runner exits non-zero if any case
+fails. Set `GITME_SCRIPT=/path/to/gitme` to test a different copy of the
+script.
 
 ## 💡 Features
 
